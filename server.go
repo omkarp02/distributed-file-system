@@ -197,7 +197,16 @@ func (s *FileServer) handleMessage(from string, msg *Message) error {
 }
 
 func (s *FileServer) handleMessageStoreFile(from string, msg MessageStoreFile) error {
-	fmt.Printf("recv store file msg: %+v\n", msg)
+	peer, ok := s.peers[from]
+
+	if !ok {
+		return fmt.Errorf("peer (%s) could not be found in the peer list", from)
+	}
+
+	if err := s.store.Write(msg.Key, peer); err != nil {
+		return err
+	}
+
 	return nil
 }
 
