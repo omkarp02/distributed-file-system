@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"net"
+	"sync"
 )
 
 // TCPpeer represents the remote node over a tcp established connection.
@@ -17,12 +18,15 @@ type TCPPeer struct {
 	// if we dial and retrieve a conn => outbound == true
 	// if we accept and retrieve a conn => outbound == false
 	outbound bool
+
+	Wg *sync.WaitGroup
 }
 
 func NewTCPPeer(conn net.Conn, outbound bool) *TCPPeer {
 	return &TCPPeer{
 		Conn:     conn,
 		outbound: outbound,
+		Wg:       &sync.WaitGroup{},
 	}
 }
 
@@ -136,8 +140,8 @@ func (t *TCPTransport) handleConn(conn net.Conn, outbound bool) {
 	rpc := RPC{}
 
 	for {
-
 		err = t.Decoder.Decode(conn, &rpc)
+		fmt.Println("someone send message to this tcp connection")
 
 		//TODO: here we need to figure out if there is a conn close error then only return it, as now we are returning for every error
 		if err != nil {
@@ -145,9 +149,13 @@ func (t *TCPTransport) handleConn(conn net.Conn, outbound bool) {
 			return
 		}
 
-		rpc.From = conn.RemoteAddr()
+		rpc.From = conn.RemoteAddr().String()
+		peer.Wg.Add(1)
+		fmt.Println("waiting till stream is done")
 
 		t.rpcch <- rpc
+		peer.Wg.Wait()
+		fmt.Println("stream done continuing normal read loop")
 	}
 
 }
