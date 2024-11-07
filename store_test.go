@@ -15,14 +15,24 @@ func TestPathTransformFunc(t *testing.T) {
 
 }
 
-func TestDelete(t *testing.T) {
+func newStore() *Store {
 	opts := StoreOpts{
 		PathTransformFunc: CASPathTransformFunc,
 	}
 
-	s := NewStore(opts)
+	return NewStore(opts)
+}
 
-	key := "momsspecials"
+func teardown(t *testing.T, s *Store) {
+	if err := s.Clear(); err != nil {
+		t.Error(err)
+	}
+}
+
+func TestDelete(t *testing.T) {
+	s := newStore()
+
+	key := "fooandbar"
 
 	data := []byte("some jpg bytes")
 
@@ -36,11 +46,9 @@ func TestDelete(t *testing.T) {
 }
 
 func TestStore(t *testing.T) {
-	opts := StoreOpts{
-		PathTransformFunc: CASPathTransformFunc,
-	}
+	s := newStore()
 
-	s := NewStore(opts)
+	defer teardown(t, s)
 
 	key := "momsspecials"
 
@@ -63,6 +71,12 @@ func TestStore(t *testing.T) {
 
 	fmt.Println("no of bytes written to disc", b)
 
-	s.Delete(key)
+	if err := s.Delete(key); err != nil {
+		t.Error(err)
+	}
+
+	if ok := s.Has(key); ok {
+		t.Errorf("key exist meaning delte not working")
+	}
 
 }

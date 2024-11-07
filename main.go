@@ -1,39 +1,54 @@
 package main
 
 import (
-	"fmt"
+	"bytes"
 	"log"
+	"time"
 
 	"github.com/omkarp02/distributed-file-system/p2p"
 )
 
-func OnPerr(peer p2p.Peer) error {
-	fmt.Println("doing some logic with the peer outside of tcptransport")
-	peer.Close()
-	return nil
+func makeServer(listenAddr string, nodes ...string) *FileServer {
+	tcpTransportOpts := p2p.TCPTransportOpts{
+		ListenAddr:    listenAddr,
+		HandshakeFunc: p2p.NOPHandeshakeFunc,
+		Decoder:       p2p.DefaultDecoder{},
+	}
+
+	tcpTransport := p2p.NewTCPTransport(tcpTransportOpts)
+
+	fileServerOpts := FileServerOpts{
+		StorageRoot:       listenAddr[1:] + "_network",
+		PathTransformFunc: CASPathTransformFunc,
+		Transport:         tcpTransport,
+		BoostrapNodes:     nodes,
+	}
+
+	s := NewFileServer(fileServerOpts)
+
+	tcpTransport.OnPeer = s.OnPeer
+
+	return s
+
 }
 
 func main() {
 
-	tcpOpts := p2p.TCPTransportOpts{
-		ListenAddr:    ":3000",
-		HandshakeFunc: p2p.NOPHandeshakeFunc,
-		Decoder:       p2p.DefaultDecoder{},
-		OnPeer:        OnPerr,
-	}
-
-	tr := p2p.NewTCPTransport(tcpOpts)
+	s1 := makeServer(":3000", "")
+	s2 := makeServer(":4000", ":3000")
 
 	go func() {
-		for {
-			msg := <-tr.Consume()
-			log.Println(msg)
-		}
+		log.Fatal(s1.Start())
 	}()
 
-	if err := tr.ListenAndAccept(); err != nil {
-		log.Fatal()
-	}
+	time.Sleep(1 * time.Second)
+
+	go s2.Start()
+	time.Sleep(1 * time.Second)
+
+	data := bytes.NewReader([]byte("my big data file here"))
+	s2.StoreData("myprivatedata", data)
 
 	select {}
+
 }
