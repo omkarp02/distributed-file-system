@@ -6,6 +6,7 @@ import "net"
 type Peer interface {
 	net.Conn
 	Send([]byte) error
+	CloseStream()
 }
 
 //Transport is anything that handles the communication betn the nodes in the network. This can be of the form (TCP, UDP, websockets)
