@@ -31,15 +31,19 @@ func copyDecrypt(key []byte, src io.Reader, dst io.Writer) (int, error) {
 	var (
 		buf    = make([]byte, 32*1024)
 		stream = cipher.NewCTR(block, iv)
+		nw     = block.BlockSize()
 	)
 
 	for {
 		n, err := src.Read(buf)
 		if n > 0 {
 			stream.XORKeyStream(buf, buf[:n])
-			if _, err := dst.Write(buf[:n]); err != nil {
+			nn, err := dst.Write(buf[:n])
+			if err != nil {
 				return 0, err
 			}
+
+			nw += nn
 
 		}
 
@@ -52,7 +56,7 @@ func copyDecrypt(key []byte, src io.Reader, dst io.Writer) (int, error) {
 		}
 	}
 
-	return 0, nil
+	return nw, nil
 }
 
 func copyEncrypt(key []byte, src io.Reader, dst io.Writer) (int, error) {
@@ -74,15 +78,19 @@ func copyEncrypt(key []byte, src io.Reader, dst io.Writer) (int, error) {
 	var (
 		buf    = make([]byte, 32*1024)
 		stream = cipher.NewCTR(block, iv)
+		nw     = block.BlockSize()
 	)
 
 	for {
 		n, err := src.Read(buf)
 		if n > 0 {
 			stream.XORKeyStream(buf, buf[:n])
-			if _, err := dst.Write(buf[:n]); err != nil {
+			nn, err := dst.Write(buf[:n])
+			if err != nil {
 				return 0, err
 			}
+
+			nw += nn
 		}
 
 		if err == io.EOF {
@@ -94,5 +102,5 @@ func copyEncrypt(key []byte, src io.Reader, dst io.Writer) (int, error) {
 		}
 	}
 
-	return 0, nil
+	return nw, nil
 }

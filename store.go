@@ -118,6 +118,19 @@ func (s *Store) Write(key string, r io.Reader) (int64, error) {
 	return s.writeStream(key, r)
 }
 
+func (s *Store) WriteDecrypt(encKey []byte, key string, r io.Reader) (int64, error) {
+
+	f, err := s.openFileForWriting(key)
+	if err != nil {
+		return 0, err
+	}
+	n, err := copyDecrypt(encKey, r, f)
+
+	defer f.Close()
+
+	return int64(n), err
+}
+
 // TODO: instead of copying directly to a reader we first copy this into
 // a buffer maybe just return the file from the read stream
 func (s *Store) Read(key string) (int64, io.ReadCloser, error) {
@@ -149,30 +162,25 @@ func (s *Store) readStream(key string) (int64, io.ReadCloser, error) {
 	return fileInfo.Size(), file, nil
 }
 
-func (s *Store) writeStream(key string, r io.Reader) (int64, error) {
+func (s *Store) openFileForWriting(key string) (*os.File, error) {
 	pathKey := s.PathTransformFunc(key)
 
 	pathNameWithRoot := fmt.Sprintf("%s/%s", s.Root, pathKey.Pathname)
 
 	if err := os.MkdirAll(pathNameWithRoot, os.ModePerm); err != nil {
-		return 0, err
+		return nil, err
 	}
 
 	fullPathWithRoot := fmt.Sprintf("%s/%s", s.Root, pathKey.FullPath())
 
-	f, err := os.Create(fullPathWithRoot)
+	return os.Create(fullPathWithRoot)
+}
+
+func (s *Store) writeStream(key string, r io.Reader) (int64, error) {
+	f, err := s.openFileForWriting(key)
 	if err != nil {
 		return 0, err
 	}
-
 	defer f.Close()
-
-	fmt.Println("copying data to file")
-	n, err := io.Copy(f, r)
-	if err != nil {
-		log.Println(err)
-		return 0, err
-	}
-
-	return n, nil
+	return io.Copy(f, r)
 }
