@@ -136,12 +136,12 @@ func (t *TCPTransport) handleConn(conn net.Conn, outbound bool) {
 
 	peer := NewTCPPeer(conn, outbound)
 
-	if err := t.HandshakeFunc(peer); err != nil {
+	if err = t.HandshakeFunc(peer); err != nil {
 		return
 	}
 
 	if t.OnPeer != nil {
-		if err := t.OnPeer(peer); err != nil {
+		if err = t.OnPeer(peer); err != nil {
 			return
 		}
 	}
@@ -150,11 +150,10 @@ func (t *TCPTransport) handleConn(conn net.Conn, outbound bool) {
 		//Read Loop
 		rpc := RPC{}
 		err = t.Decoder.Decode(conn, &rpc)
-		fmt.Printf("someone send message to this tcp connection\ns")
 
-		//TODO: here we need to figure out if there is a conn close error then only return it, as now we are returning for every error
+		// fmt.Printf("someone send message to this tcp connection\ns")
+
 		if err != nil {
-			fmt.Printf("TCP read error: %s\n", err)
 			return
 		}
 
@@ -170,5 +169,4 @@ func (t *TCPTransport) handleConn(conn net.Conn, outbound bool) {
 
 		t.rpcch <- rpc
 	}
-
 }

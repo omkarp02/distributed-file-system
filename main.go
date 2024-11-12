@@ -54,7 +54,7 @@ func main() {
 	go s3.Start()
 	time.Sleep(2 * time.Second)
 
-	for i := 0; i < 3; i++ {
+	for i := 0; i < 20; i++ {
 		// key := "coolPicture"
 		key := fmt.Sprintf("picture_%d.png", i)
 
@@ -81,4 +81,4 @@ func main() {
 
 }
 
-//timeline 8:27:02
+//timeline 9:42:00
