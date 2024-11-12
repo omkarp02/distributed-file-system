@@ -1,7 +1,6 @@
 package main
 
 import (
-	"bytes"
 	"crypto/sha1"
 	"encoding/hex"
 	"errors"
@@ -119,25 +118,35 @@ func (s *Store) Write(key string, r io.Reader) (int64, error) {
 	return s.writeStream(key, r)
 }
 
-func (s *Store) Read(key string) (io.Reader, error) {
-	f, err := s.readStream(key)
-	if err != nil {
-		return nil, err
-	}
+// TODO: instead of copying directly to a reader we first copy this into
+// a buffer maybe just return the file from the read stream
+func (s *Store) Read(key string) (int64, io.ReadCloser, error) {
+	return s.readStream(key)
 
-	defer f.Close()
-
-	buf := new(bytes.Buffer)
-	_, err = io.Copy(buf, f)
-
-	return buf, err
 }
 
-func (s *Store) readStream(key string) (io.ReadCloser, error) {
+func (s *Store) readStream(key string) (int64, io.ReadCloser, error) {
 	pathKey := s.PathTransformFunc(key)
 	pathKeyWithRoot := fmt.Sprintf("%s/%s", s.Root, pathKey.FullPath())
-	return os.Open(pathKeyWithRoot)
 
+	// fi, err := os.Stat(pathKeyWithRoot)
+	// if err != nil {
+	// 	return 0, nil, err
+	// }
+
+	file, err := os.Open(pathKeyWithRoot)
+
+	if err != nil {
+		return 0, nil, err
+	}
+
+	fileInfo, err := file.Stat()
+
+	if err != nil {
+		return 0, nil, err
+	}
+
+	return fileInfo.Size(), file, nil
 }
 
 func (s *Store) writeStream(key string, r io.Reader) (int64, error) {

@@ -150,7 +150,7 @@ func (t *TCPTransport) handleConn(conn net.Conn, outbound bool) {
 		//Read Loop
 		rpc := RPC{}
 		err = t.Decoder.Decode(conn, &rpc)
-		fmt.Println("someone send message to this tcp connection")
+		fmt.Printf("someone send message to this tcp connection\ns")
 
 		//TODO: here we need to figure out if there is a conn close error then only return it, as now we are returning for every error
 		if err != nil {
